@@ -114,6 +114,10 @@ def lambda_handler(event, context):
         return build_response(200, {})
 
     try:
+        # Check initialization status
+        if init_error:
+            return build_response(500, {"error": f"Internal server error: {init_error}"})
+
         # Extract query string parameters from API request
         query_params = event.get('queryStringParameters', {}) or {}
 
