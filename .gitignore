@@ -1,3 +1,5 @@
 *.vscode
 *.xlsx
 *.docx
+*test.py
+*import_data.json
