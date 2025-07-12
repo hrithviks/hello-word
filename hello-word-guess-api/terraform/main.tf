@@ -68,6 +68,7 @@ module "game_words_table_access_role" {
   }
 }
 
+# Generate read-only access policy for DynamoDB table
 module "game_words_table_access_policy" {
   source = "./modules/iam/policies/"
 
@@ -103,7 +104,11 @@ module "game_words_table_access_policy" {
   }
 }
 
-# Invoke IAM Policies Module to create and attach policy to DynamoDB table
+# Attach the DynamoDB access policy to game word table role
+resource "aws_iam_role_policy_attachment" "game_word_table_access_attachment" {
+  role       = module.game_words_table_access_role.iam_role_name
+  policy_arn = module.game_words_table_access_policy.iam_policy_arn
+}
 
 # Output the table name and ARN for use in CI/CD or other modules
 output "game_words_table_name" {
