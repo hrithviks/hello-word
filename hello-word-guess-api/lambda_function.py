@@ -1,5 +1,5 @@
 '''
-Program    : lambda_get_random_word.py
+Program    : get_random_word.py
 Author     : Hrithvik Saseendran
 Decription : Python based program for Lambda function to generate a 
              random word,  based on the category and difficulty
@@ -125,7 +125,7 @@ def lambda_handler(event, context):
         category = query_params.get('category', '').lower().strip()
         difficulty = query_params.get('difficulty', DEFAULT_DIFFICULTY).lower().strip()
 
-        logger.debug(f"Request (Request ID: {request_id}) - Category: '{category}', Difficulty: '{difficulty}'")
+        logger.debug(f"Request (Request ID: {request_id}) - category: '{category}', difficulty: '{difficulty}'")
 
         # Input parameter validation
         validation_errors = []
@@ -146,37 +146,45 @@ def lambda_handler(event, context):
         # Build KeyConditionExpression to query DynamoDB
         key_condition_expression = Key('Category').eq(category) & Key('Difficulty').eq(difficulty)
         
-        logger.debug(f"Querying DynamoDB for Category: {category}, Difficulty: {difficulty} (Request ID: {request_id})")
+        logger.info(f"Querying DynamoDB for Category: {category}, Difficulty: {difficulty} (Request ID: {request_id})")
 
         response = words_table.query(
             KeyConditionExpression=key_condition_expression,
-            ProjectionExpression="Word, Category, Difficulty" # Only retrieve necessary attributes
+            ProjectionExpression="GameWords, Category, Difficulty" # Only retrieve necessary attributes
         )
 
         items = response.get('Items', [])
-        logger.debug(f"Found {len(items)} items for Category '{category}', Difficulty '{difficulty}' (Request ID: {request_id})")
 
+        # If no items returned from DB
         if not items:
             logger.warning(f"No words found for category '{category}' and difficulty '{difficulty}' (Request ID: {request_id})")
             return build_response(404, {
                 "error": f"No words found for category '{category}' and difficulty '{difficulty}'."
             })
+        
+        # More than one items returned from DB. This is not expected ideally, by design
+        if len(items) > 1:
+            logger.warning(f"Multiple entries found for category '{category}' and difficulty '{difficulty}' (Request ID: {request_id})")
+            return build_response(404, {
+                "error": f"Multiple entries found for category '{category}' and difficulty '{difficulty}'."
+            })
+
+        game_words = items[0].get('GameWords', [])
+        logger.info(f"Found {len(game_words)} items for category '{category}', difficulty '{difficulty}' (Request ID: {request_id})")
 
         # Select a random word from the retrieved items
-        selected_item = random.choice(items)
+        random_selected_item = random.choice(game_words)
         
-        # Ensure 'Word' key exists before accessing
-        random_word = selected_item.get('Word')
-        if not random_word:
-            logger.error(f"Selected item missing 'Word' attribute: {selected_item} (Request ID: {request_id})")
+        if not random_selected_item:
+            logger.error(f"Random word not obtained for category '{category}' and difficulty '{difficulty}' (Request ID: {request_id})")
             return build_response(500, {"error": "Internal server error: Retrieved word data is malformed."})
 
-        logger.info(f"Successfully retrieved word: '{random_word}' for category '{category}', difficulty '{difficulty}' (Request ID: {request_id})")
+        logger.info(f"Successfully retrieved word: '{random_selected_item}' for category '{category}', difficulty '{difficulty}' (Request ID: {request_id})")
 
         return build_response(200, {
-            "word": random_word,
-            "category": selected_item.get('Category'),
-            "difficulty": selected_item.get('Difficulty')
+            "word": random_selected_item,
+            "category": category,
+            "difficulty": difficulty
         })
 
     except ClientError as aws_err: # Handle all AWS SDK errors

@@ -5,3 +5,4 @@
 *import_data.json
 *notes.md
 .terraform*
+.DS_Store
