@@ -1,6 +1,6 @@
 /*
 Author      : Hrithvik Saseendran
-Description : Outputs from module
+Description : Outputs from DynamoDB Module
 */
 
 
