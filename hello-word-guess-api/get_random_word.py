@@ -23,20 +23,7 @@ if not DYNAMODB_TABLE_NAME:
     raise ValueError("DYNAMODB_TABLE_NAME environment variable is not set.")
 
 # Set default difficulty to medium, if None selected during invocation
-DEFAULT_DIFFICULTY = os.environ.get('DEFAULT_DIFFICULTY', 'medium').lower()
-
-# Get allowed categories and difficulty levels
-ALLOWED_CATEGORIES_STR = os.environ.get('ALLOWED_CATEGORIES', '').lower()
-ALLOWED_DIFFICULTIES_STR = os.environ.get('ALLOWED_DIFFICULTIES', '').lower()
-
-# Convert comma-separated strings to lists
-ALLOWED_CATEGORIES = [
-    cat.strip() for cat in ALLOWED_CATEGORIES_STR.split(',') if cat.strip()
-] if ALLOWED_CATEGORIES_STR else []
-
-ALLOWED_DIFFICULTIES = [
-    diff.strip() for diff in ALLOWED_DIFFICULTIES_STR.split(',') if diff.strip()
-] if ALLOWED_DIFFICULTIES_STR else []
+DEFAULT_DIFFICULTY = os.environ.get('DEFAULT_DIFFICULTY', 'easy').lower()
 
 # Logger Setup
 logger = logging.getLogger(__name__)
@@ -128,17 +115,6 @@ def lambda_handler(event, context):
         logger.debug(f"Request (Request ID: {request_id}) - category: '{category}', difficulty: '{difficulty}'")
 
         # Input parameter validation
-        validation_errors = []
-        if category and category not in ALLOWED_CATEGORIES:
-            validation_errors.append(f"Invalid category: '{category}'. Allowed categories: {', '.join(ALLOWED_CATEGORIES)}")
-        
-        if difficulty and difficulty not in ALLOWED_DIFFICULTIES:
-            validation_errors.append(f"Invalid difficulty: '{difficulty}'. Allowed difficulties: {', '.join(ALLOWED_DIFFICULTIES)}")
-
-        if validation_errors:
-            logger.warning(f"Validation failed (Request ID: {request_id}): {validation_errors}")
-            return build_response(400, {"error": "Invalid request parameters", "details": validation_errors})
-
         if not category:
             logger.warning(f"Missing 'category' parameter for query (Request ID: {request_id}).")
             return build_response(400, {"error": "Category parameter is required to retrieve a word."})
