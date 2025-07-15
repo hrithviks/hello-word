@@ -18,10 +18,27 @@ variable "project_name" {
   default     = "HelloWordGame"
 }
 
+variable "service_name" {
+  description = "The name of the service in the project"
+  type        = string
+  default     = "GuessAPI"
+}
+
 variable "aws_region" {
   description = "The AWS region to deploy resources into."
   type        = string
   default     = "ap-southeast-1" # Set your preferred default region
+}
+
+variable "project_tags" {
+  description = "The default tags for all the AWS resources in Guess-Word API Configuration"
+  type        = map(any)
+  default = {
+    Environment = "Dev"
+    Project     = "HelloWord"
+    Service     = "GuessAPI"
+    Terraform   = true
+  }
 }
 
 /*

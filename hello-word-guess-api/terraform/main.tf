@@ -24,19 +24,14 @@ module "game_words_table" {
   source = "./modules/dynamo-db"
 
   # Assign values for module variables from input
-  table_name     = "${var.project_name}-${upper(var.environment)}"
+  table_name     = "${var.service_name}-${upper(var.environment)}"
   hash_key       = var.dynamodb_table_hash_key
   range_key      = var.dynamodb_table_range_key
   attributes     = var.dynamodb_table_attributes
   read_capacity  = var.dynamodb_table_rcu
   write_capacity = var.dynamodb_table_wcu
 
-  tags = {
-    Environment = var.environment
-    Project     = var.project_name
-    Service     = "GameWords"
-    Terraform   = true
-  }
+  tags = var.project_tags
 }
 
 # Invoke IAM Roles Module to create a role for DynamoDB backend
@@ -44,7 +39,7 @@ module "game_words_table_access_role" {
   source = "./modules/iam/roles/"
 
   # Assign values for module variables from input
-  iam_role_name        = "${var.project_name}-${upper(var.environment)}-DynamoDBAccess-Role"
+  iam_role_name        = "${var.service_name}-${upper(var.environment)}-DynamoDB-Access-Role"
   iam_role_description = "IAM role for the Hello Word game table on DynamodDB"
 
   # Assume Role Policy for a Lambda Function
@@ -60,12 +55,7 @@ module "game_words_table_access_role" {
     }]
   })
 
-  iam_role_tags = {
-    Environment = var.environment
-    Project     = var.project_name
-    Service     = "GameWords"
-    Terraform   = true
-  }
+  iam_role_tags = var.project_tags
 }
 
 # Generate read-only access policy for DynamoDB table
@@ -73,7 +63,7 @@ module "game_words_table_access_policy" {
   source = "./modules/iam/policies/"
 
   # Assign values for module variables from input
-  iam_policy_name        = "${var.project_name}-${upper(var.environment)}-DynamoDB-ReadAccess-Policy"
+  iam_policy_name        = "${var.service_name}-${upper(var.environment)}-DynamoDB-ReadAccess-Policy"
   iam_policy_description = "IAM policy for granting access to DynamoDB table"
 
   iam_policy_json = jsonencode({
@@ -96,12 +86,7 @@ module "game_words_table_access_policy" {
     ]
   })
 
-  iam_policy_tags = {
-    Environment = var.environment
-    Project     = var.project_name
-    Service     = "GameWords"
-    Terraform   = true
-  }
+  iam_policy_tags = var.project_tags
 }
 
 # Attach the DynamoDB access policy to game word table role
@@ -109,6 +94,21 @@ resource "aws_iam_role_policy_attachment" "game_word_table_access_attachment" {
   role       = module.game_words_table_access_role.iam_role_name
   policy_arn = module.game_words_table_access_policy.iam_policy_arn
 }
+
+# Create Cloudwatch log group
+module "game_words_lambda_cloudwatch_log_group" {
+  source = "./modules/cloudwatch/"
+
+  cloudwatch_log_group_name    = "/${lower(var.project_name)}/${var.environment}/lambda/loggroup-${lower(var.service_name)}"
+  cloudwatch_retention_in_days = 30 # Example retention policy
+  cloudwatch_tags              = var.project_tags
+}
+
+# Create policy for read-write access to Cloudwatch log group
+
+# Attach Cloudwatch access policy to execution role for lambda function
+
+# Create Lambda function using the module and attach IAM role for execution
 
 # Output the table name and ARN for use in CI/CD or other modules
 output "game_words_table_name" {
@@ -120,3 +120,5 @@ output "game_words_table_arn" {
   description = "The ARN of the created DynamoDB table."
   value       = module.game_words_table.table_arn
 }
+
+# Output details of Lambda function
