@@ -47,8 +47,8 @@ module "game_words_table_access_role" {
   source = "./modules/iam/roles/"
 
   # Assign values for module variables from input
-  iam_role_name        = lower("${local.resource_name_prefix}-DynamoDB-Access-Role-${var.environment}")
-  iam_role_description = "IAM role for the Hello Word game table on DynamodDB"
+  iam_role_name        = lower("${local.resource_name_prefix}-lambda-exec-role-${var.environment}")
+  iam_role_description = "IAM role for lambda function to access other services"
 
   # Assume Role Policy for a Lambda Function
   iam_role_policy_json = jsonencode({
