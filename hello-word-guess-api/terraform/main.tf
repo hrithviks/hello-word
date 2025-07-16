@@ -22,12 +22,17 @@ provider "aws" {
 # Get account details
 data "aws_caller_identity" "aws_resource_admin" {}
 
+# Local variables
+locals {
+  resource_name_prefix = lower("${var.project_name}-${var.service_name}")
+}
+
 # Invoke DynamoDB Table Module to create a new table
 module "game_words_table" {
   source = "./modules/dynamo-db"
 
   # Assign values for module variables from input
-  table_name     = "${var.service_name}-${upper(var.environment)}"
+  table_name     = lower("${local.resource_name_prefix}-db-${var.environment}")
   hash_key       = var.dynamodb_table_hash_key
   range_key      = var.dynamodb_table_range_key
   attributes     = var.dynamodb_table_attributes
@@ -42,7 +47,7 @@ module "game_words_table_access_role" {
   source = "./modules/iam/roles/"
 
   # Assign values for module variables from input
-  iam_role_name        = "${var.service_name}-DynamoDB-Access-Role-${upper(var.environment)}"
+  iam_role_name        = lower("${local.resource_name_prefix}-DynamoDB-Access-Role-${var.environment}")
   iam_role_description = "IAM role for the Hello Word game table on DynamodDB"
 
   # Assume Role Policy for a Lambda Function
@@ -66,7 +71,7 @@ module "game_words_table_access_policy" {
   source = "./modules/iam/policies/"
 
   # Assign values for module variables from input
-  iam_policy_name        = "${var.service_name}-DynamoDB-ReadAccess-Policy-${upper(var.environment)}"
+  iam_policy_name        = lower("${local.resource_name_prefix}-DynamoDB-ReadAccess-Policy-${var.environment}")
   iam_policy_description = "IAM policy for granting access to DynamoDB table"
 
   iam_policy_json = jsonencode({
@@ -102,7 +107,7 @@ resource "aws_iam_role_policy_attachment" "game_word_table_access_attachment" {
 module "game_words_lambda_cloudwatch_log_group" {
   source = "./modules/cloudwatch/"
 
-  cloudwatch_log_group_name    = "/aws/lambda/${var.project_name}-${var.service_name}-${upper(var.environment)}"
+  cloudwatch_log_group_name    = lower("/aws/lambda/${local.resource_name_prefix}-func-${var.environment}")
   cloudwatch_retention_in_days = var.cloudwatch_retention_period
   cloudwatch_tags              = var.project_tags
 }
@@ -111,7 +116,7 @@ module "game_words_lambda_cloudwatch_log_group" {
 module "game_words_cloudwatch_access_policy" {
   source = "./modules/iam/policies/"
 
-  iam_policy_name        = "${var.service_name}-CloudWatch-Access-Policy-${upper(var.environment)}"
+  iam_policy_name        = lower("${local.resource_name_prefix}-CloudWatch-Access-Policy-${var.environment}")
   iam_policy_description = "IAM policy for granting access to CloudWatch log group for the Lambda function"
   iam_policy_json = jsonencode({
     Version = "2012-10-17",
@@ -147,7 +152,7 @@ resource "aws_iam_role_policy_attachment" "game_word_cloudwatch_access_attachmen
 module "game_words_randomize_lambda" {
   source = "./modules/lambda"
 
-  lambda_function_name      = "${var.project_name}-${var.service_name}-${upper(var.environment)}"
+  lambda_function_name      = lower("${local.resource_name_prefix}-func-${var.environment}")
   lambda_handler            = "${var.python_source_code_file_name}.${var.python_function_name}"
   lambda_runtime            = "python${var.python_version_num}"
   lambda_memory_size        = var.python_exec_memory_size

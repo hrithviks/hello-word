@@ -15,7 +15,7 @@ variable "environment" {
 variable "project_name" {
   description = "The name of the project. Used as a prefix for resources."
   type        = string
-  default     = "HelloWordGame"
+  default     = "HelloWord"
 }
 
 variable "service_name" {
