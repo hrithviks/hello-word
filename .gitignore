@@ -6,3 +6,7 @@
 *notes.md
 .terraform*
 .DS_Store
+*.csv
+*.CSV
+*.data
+*.dat
