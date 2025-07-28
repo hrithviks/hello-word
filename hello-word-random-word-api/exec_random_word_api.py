@@ -1,3 +1,11 @@
+'''
+Program    : exec_random_word_api.py
+Author     : Hrithvik Saseendran
+Decription : Python based program for creating data on dynanoDB table
+             Full Mode ==> Drop and recreate data from source S3 file
+             Delta Mode ==> Import changes from source data file
+'''
+
 import requests
 from requests_aws4auth import AWS4Auth
 import boto3
