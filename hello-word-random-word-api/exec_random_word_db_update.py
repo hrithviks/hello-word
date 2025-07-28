@@ -1,5 +1,5 @@
 '''
-Program    : create_data.py
+Program    : exec_random_word_db_update.py
 Author     : Hrithvik Saseendran
 Decription : Python based program for creating data on dynanoDB table
              Full Mode ==> Drop and recreate data from source S3 file
