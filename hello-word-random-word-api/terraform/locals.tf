@@ -1,11 +1,14 @@
 /*
-Local variable configuration
+Author      : Hrithvik Saseendran
+Description : Locals for the main terraform configuration
 */
 
 locals {
 
-  # OpenAPI Specification to use for API Gateway Body
-  openapi_specification_map = {
+  /*
+  openAI specification, used to build the random word API
+  */
+  random_word_openapi_specification_map = {
     openapi = "3.0.1"
     info = {
       title   = "Hello Word API Template"
@@ -77,7 +80,7 @@ locals {
             }
           ]
           x-amazon-apigateway-integration = {
-            uri                 = "${lambda_invocation_uri}"
+            uri                 = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${module.game_words_randomize_lambda.lambda_arn}/invocations"
             type                = "aws_proxy"
             httpMethod          = "POST"
             passthroughBehavior = "when_no_match"

@@ -24,8 +24,9 @@ data "aws_caller_identity" "aws_resource_admin" {}
 
 # Local variables
 locals {
-  resource_name_prefix              = lower("${var.project_name}-${var.service_name}")
-  api_lambda_integration_uri_format = "arn:aws:apigateway:%s:lambda:path/2015-03-31/functions/%s/invocations"
+  resource_name_prefix                     = lower("${var.project_name}-${var.service_name}")
+  aws_account_id                           = data.aws_caller_identity.aws_resource_admin.account_id
+  api_gateway_lambda_permission_source_arn = "arn:aws:execute-api:${var.aws_region}:${local.aws_account_id}:${module.game_words_rest_api.rest_api_id}/*/*"
 }
 
 /*
@@ -279,18 +280,22 @@ module "game_words_rest_api" {
   api_gateway_name                 = "random-word-api-dev"
   api_gateway_description          = "API to retrieve random word via lambda function"
   api_gateway_rest_endpoint_config = "REGIONAL"
-  api_gateway_rest_api_body = jsonencode({
-    "openapi" : "3.0.1",
-    "info" : {
-      "title" : "game-words-api",
-      "version" : "1.0"
-    },
-    "paths" : {
-      "/helloworld/getRandomWord" : {
+  api_gateway_rest_api_body        = jsonencode(local.random_word_openapi_specification_map)
+}
 
-      }
-    }
-  })
+# Add lambda permission for the API Gateway
+resource "aws_lambda_permission" "api_gateway_permission" {
+  statement_id  = "AllowAPIGatewayInvokeLambda"
+  action        = "lambda:InvokeFunction"
+  function_name = module.game_words_randomize_lambda.lambda_arn
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = local.api_gateway_lambda_permission_source_arn
+
+  # Add explicit dependency on API Gateway and Lambda resource
+  depends_on = [
+    module.game_words_rest_api,
+    module.game_words_randomize_lambda
+  ]
 }
 
 /*
