@@ -1,6 +1,6 @@
 /*
 Author      : Hrithvik Saseendran
-Description : Main Configuration for Guess Word API
+Description : Main Configuration for Random Word API
 */
 
 # Setup Provider

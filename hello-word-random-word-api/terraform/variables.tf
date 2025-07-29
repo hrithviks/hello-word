@@ -1,6 +1,6 @@
 /*
 Author      : Hrithvik Saseendran
-Description : Variable Declaration for Guess Word API
+Description : Variable Declaration for Random Word API
 */
 
 /*
@@ -21,7 +21,7 @@ variable "project_name" {
 variable "service_name" {
   description = "The name of the service in the project"
   type        = string
-  default     = "GuessAPI"
+  default     = "Random-Word-API"
 }
 
 variable "aws_region" {
@@ -31,12 +31,12 @@ variable "aws_region" {
 }
 
 variable "project_tags" {
-  description = "The default tags for all the AWS resources in Guess-Word API Configuration"
+  description = "The default tags for all the AWS resources in Random-Word API Configuration"
   type        = map(any)
   default = {
     Environment = "Dev"
     Project     = "HelloWord"
-    Service     = "GuessAPI"
+    Service     = "Random-Word-API"
     Terraform   = true
   }
 }
@@ -116,7 +116,7 @@ variable "python_function_name" {
 variable "python_s3_bucket" {
   description = "S3 bucket name for hosting python code"
   type        = string
-  default     = "hello-word-guess-api"
+  default     = "hello-word-random-api"
 }
 
 variable "python_s3_key" {
