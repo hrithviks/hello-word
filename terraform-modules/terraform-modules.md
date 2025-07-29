@@ -103,5 +103,36 @@ This module creates an IAM Role with a specified assume role policy. This role c
 
 #### Variables
 
-| Name                   
+| Name                            | Description                                                          | Type          |
+| ------------------------------- | -------------------------------------------------------------------- | ------------- |
+| `iam_role_name`                 | Name of IAM role to be created.                                      | `string`      |
+| `iam_role_policy_json`          | The JSON policy for assuming the role.                               | `string`      |
+| `iam_role_description`          | A description of the IAM role.                                       | `string`      |
+| `iam_role_max_session_duration` | Max session duration to assume the role's temporary credentials.     | `number`      |
+| `iam_role_tags`                 | List of tags assigned to the IAM role.                               | `map(string)` |
+
+#### Outputs
+
+| Name            | Description                       |
+| --------------- | --------------------------------- |
+| `iam_role_name` | The name of the created IAM role. |
+| `iam_role_arn`  | The ARN of the created IAM role.  |
+
 ### Policies
+
+This module creates an IAM Policy from a JSON document. This policy can then be attached to IAM roles, users, or groups.
+
+#### Variables
+
+| Name                     | Description                               | Type          |
+| ------------------------ | ----------------------------------------- | ------------- |
+| `iam_policy_name`        | The name of the IAM policy.               | `string`      |
+| `iam_policy_description` | A description for the IAM policy.         | `string`      |
+| `iam_policy_json`        | The policy document in JSON format.       | `string`      |
+| `iam_policy_tags`        | A map of tags to assign to the IAM policy.| `map(string)` |
+
+#### Outputs
+
+| Name             | Description                        |
+| ---------------- | ---------------------------------- |
+| `iam_policy_arn` | The ARN of the created IAM policy. |
