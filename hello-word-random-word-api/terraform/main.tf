@@ -38,7 +38,7 @@ DYNAMODB RESOURCES
 
 # Invoke DynamoDB Table Module to create a new table
 module "game_words_table" {
-  source = "./modules/dynamo-db"
+  source = "../../terraform-modules/dynamo-db"
 
   # Assign values for module variables from input
   table_name     = lower("${local.resource_name_prefix}-db-${var.environment}")
@@ -53,7 +53,7 @@ module "game_words_table" {
 
 # Generate read-only access policy for DynamoDB table
 module "game_words_table_access_policy" {
-  source = "./modules/iam/policies/"
+  source = "../../terraform-modules/iam/policies/"
 
   # Assign values for module variables from input
   iam_policy_name        = lower("${local.resource_name_prefix}-DynamoDB-ReadAccess-Policy-${var.environment}")
@@ -91,7 +91,7 @@ CLOUDWATCH RESOURCES
 
 # Create Cloudwatch log group for Lambda function
 module "game_words_lambda_cloudwatch_log_group" {
-  source = "./modules/cloudwatch/"
+  source = "../../terraform-modules/cloudwatch/"
 
   cloudwatch_log_group_name    = lower("/aws/lambda/${local.resource_name_prefix}-func-${var.environment}")
   cloudwatch_retention_in_days = var.cloudwatch_retention_period
@@ -100,7 +100,7 @@ module "game_words_lambda_cloudwatch_log_group" {
 
 # Create policy for read-write access to Cloudwatch log group for Lambda function
 module "game_words_lambda_cloudwatch_access_policy" {
-  source = "./modules/iam/policies/"
+  source = "../../terraform-modules/iam/policies/"
 
   iam_policy_name        = lower("${local.resource_name_prefix}-Lambda-CloudWatch-Access-Policy-${var.environment}")
   iam_policy_description = "IAM policy for granting access to CloudWatch log group for the Lambda function"
@@ -130,7 +130,7 @@ module "game_words_lambda_cloudwatch_access_policy" {
 
 # Create Cloudwatch log group for API gateway 
 module "game_words_api_gateway_cloudwatch_log_group" {
-  source = "./modules/cloudwatch/"
+  source = "../../terraform-modules/cloudwatch/"
 
   cloudwatch_log_group_name    = lower("${local.resource_name_prefix}/${var.environment}/api-gateway-logs")
   cloudwatch_retention_in_days = var.cloudwatch_retention_period
@@ -139,7 +139,7 @@ module "game_words_api_gateway_cloudwatch_log_group" {
 
 # Create policy for read-write access to Cloudwatch log group for API Gateway
 module "game_words_api_gateway_cloudwatch_access_policy" {
-  source = "./modules/iam/policies/"
+  source = "../../terraform-modules/iam/policies/"
 
   iam_policy_name        = lower("${local.resource_name_prefix}-API-Gateway-CloudWatch-Access-Policy-${var.environment}")
   iam_policy_description = "IAM policy for granting access to CloudWatch log group for the API Gateway"
@@ -178,7 +178,7 @@ LAMBDA FUNCTION RESOURCES
 
 # IAM execution role for lambda function
 module "game_words_lambda_exec_role" {
-  source = "./modules/iam/roles/"
+  source = "../../terraform-modules/iam/roles/"
 
   # Assign values for module variables from input
   iam_role_name        = lower("${local.resource_name_prefix}-lambda-exec-role-${var.environment}")
@@ -214,7 +214,7 @@ resource "aws_iam_role_policy_attachment" "game_word_lambda_cloudwatch_access_at
 
 # Create Lambda function using the module and attach IAM role for execution
 module "game_words_randomize_lambda" {
-  source = "./modules/lambda"
+  source = "../../terraform-modules/lambda"
 
   lambda_function_name      = lower("${local.resource_name_prefix}-func-${var.environment}")
   lambda_handler            = "${var.python_source_code_file_name}.${var.python_function_name}"
@@ -246,7 +246,7 @@ API GATEWAY RESOURCES
 
 # IAM execution role for API Gateway
 module "game_words_api_gateway_exec_role" {
-  source = "./modules/iam/roles/"
+  source = "../../terraform-modules/iam/roles/"
 
   # Assign values for module variables from input
   iam_role_name        = lower("${local.resource_name_prefix}-api-gateway-exec-role-${var.environment}")
@@ -276,7 +276,7 @@ resource "aws_iam_role_policy_attachment" "game_word_api_gateway_cloudwatch_acce
 
 # Create the API Gateway Resource
 module "game_words_rest_api" {
-  source                           = "./modules/api-gateway/rest_api/"
+  source                           = "../../terraform-modules/api-gateway/rest_api/"
   api_gateway_name                 = "random-word-api-dev"
   api_gateway_description          = "API to retrieve random word via lambda function"
   api_gateway_rest_endpoint_config = "REGIONAL"
