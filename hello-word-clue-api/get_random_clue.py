@@ -145,7 +145,7 @@ def lambda_handler(event, context):
         return build_response(200, {
             "word": word,
             "category": category,
-            "clue": clue
+            "clueText": clue
         })
 
     # All unhandled errors in the function
