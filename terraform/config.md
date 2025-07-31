@@ -12,7 +12,7 @@ By centralizing these common components, we ensure consistency, enforce security
 5.  [Reusable IAM Role Definitions](#5-reusable-iam-role-definitions)
 6.  [Usage & Integration](#6-usage--integration)
 
-
+---
 
 1. Core VPC Network Configuration
 This section defines the fundamental network infrastructure that all applications will leverage.
