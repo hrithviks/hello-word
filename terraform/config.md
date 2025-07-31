@@ -62,21 +62,21 @@ These endpoints enable private and secure communication between resources within
 
 
 Resources Managed:
-- Amazon S3 Gateway Endpoint (com.amazonaws.<region>.s3):
+*   **AmazonAmazon S3 Gateway Endpoint (com.amazonaws.<region>.s3):**
     - Provides private connectivity from the VPC to the S3 service.
     - Cost: Free.
     - Mechanism: Traffic is routed using prefix lists within the VPC's route tables.
     - Usage: All S3 buckets in the region are privately accessible.
     - Access control to specific buckets is handled via IAM policies.
 
-- Amazon DynamoDB Gateway Endpoint (com.amazonaws.<region>.dynamodb):
+*   **Amazon Amazon DynamoDB Gateway Endpoint (com.amazonaws.<region>.dynamodb):**
     - Provides private connectivity from the VPC to the DynamoDB service.
     - Cost: Free of charge.
     - Mechanism: Traffic is routed using prefix lists within the VPC's route tables.
     - Usage: All DynamoDB tables in the region are privately accessible.
     - Access control to specific tables is handled via IAM policies.
 
-- Amazon SQS Interface Endpoint (com.amazonaws.<region>.sqs):
+*   **Amazon SQS Interface Endpoint (com.amazonaws.<region>.sqs):**
     - Provides private connectivity to the SQS service.
     - Cost: Hourly charges + data processing.
 
