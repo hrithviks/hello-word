@@ -15,6 +15,7 @@ By centralizing these common components, we ensure consistency, enforce security
 
 1. Core VPC Network Configuration
 This section defines the fundamental network infrastructure that all applications will leverage.
+---
 
 Resources Managed:
 Virtual Private Cloud (VPC):
@@ -58,6 +59,7 @@ Subnets:
 
 2. VPC Endpoints (PrivateLink)
 These endpoints enable private and secure communication between resources within our VPC and specified AWS services, eliminating the need for traffic to traverse the public internet.
+---
 
 Resources Managed:
 - Amazon S3 Gateway Endpoint (com.amazonaws.<region>.s3):
@@ -107,6 +109,7 @@ Resources Managed:
 
 3. Main REST API Gateway
 This module defines the central AWS API Gateway (REST API) resource, serving as the primary ingress point for all external API traffic into the application suite. Individual application teams or service-specific Terraform modules extend this central API Gateway.
+---
 
 Resources Managed:
 *   **`aws_api_gateway_rest_api`**:
@@ -137,6 +140,7 @@ Resources Managed:
 *   **Deployment & Stages:** Each service can deploy its own changes to a common stage (e.g., `prod`, `dev`) of this central API Gateway, or separate stages if required by the deployment strategy.
 4. Reusable IAM Policy Definitions
 This section defines common, reusable IAM policies for attachment to various roles across different services, promoting the principle of least privilege and consistency.
+---
 
 Examples of Policies Managed:
 *   **`CommonLambdaExecutionPolicy`:**
@@ -153,6 +157,7 @@ Examples of Policies Managed:
 
 5. Reusable IAM Role Definitions
 This section defines common IAM roles or role patterns that can be assumed by various AWS services or trusted entities.
+---
 
 Examples of Roles Managed:
 *   **`LambdaBaseExecutionRole`:**
@@ -166,6 +171,7 @@ Examples of Roles Managed:
 
 6. Usage & Integration
 Other Terraform modules representing individual application services will perform the following:
+---
 
 *   **Reference Outputs:** Use `terraform_remote_state` or data sources to fetch outputs from this centralized module (e.g., VPC ID, subnet IDs, security group IDs, endpoint IDs, main API Gateway ID).
 
