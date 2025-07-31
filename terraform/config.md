@@ -18,30 +18,30 @@ By centralizing these common components, we ensure consistency, enforce security
 This section defines the fundamental network infrastructure that all applications will leverage.
 
 Resources Managed:
-Virtual Private Cloud (VPC):
+- **Virtual Private Cloud (VPC)**:
 - Defines the isolated network space for all resources.
 - Configures a specific CIDR block to accommodate future growth.
 
-Subnets:
-- Public Subnets:
+- **Subnets**:
+- **Public Subnets**:
     - Supports resources requiring direct internet access, including Application Load Balancers (ALBs) and NAT Gateways.
     - Each public subnet is associated with a route table that directs internet-bound traffic to the Internet Gateway.
     - Deployed across multiple Availability Zones for high availability.
 
-- Private Application Subnets:
+- **Private Application Subnets**:
     - Hosts application compute resources such as Lambda functions, ECS tasks, and ENIs.
     - These subnets lack a direct route to the Internet Gateway; outbound internet access is provided via the NAT Gateway.
     - Deployed across multiple Availability Zones.
 
-- Private Data Subnets:
+- **Private Data Subnets**:
     - Dedicated for sensitive data storage solutions, such as Redis.
     - These subnets also lack a direct route to the Internet Gateway and are secured with stricter security group rules.
     - Deployed across multiple Availability Zones.
 
-- Internet Gateway (IGW):
+- **Internet Gateway (IGW)**:
     - Attached to the VPC to facilitate communication between resources in public subnets and the internet.
 
-- NAT Gateway(s):
+- **NAT Gateway(s)**:
     - Deployed in public subnets (at least one per AZ for high availability) to provide outbound internet connectivity for resources in private subnets (e.g., Lambda functions requiring access to external APIs).
     - Each NAT Gateway is associated with an Elastic IP address.
 
@@ -50,10 +50,11 @@ Subnets:
     - Private Route Tables: Associated with private subnets, containing a default route (0.0.0.0/0) pointing to the NAT Gateway. Also contain specific routes for VPC Gateway Endpoints.
 
 - VPC Flow Logs:
+- **VPC Flow Logs**:
     - Enabled for the VPC to capture IP traffic information, supporting network monitoring, troubleshooting, and security analysis.
     - Logs are delivered to CloudWatch Logs.
 
-- Security Groups:
+- **Security Groups**:
     - Core security groups are defined to provide basic network isolation and access for common patterns (e.g., `sg-alb-ingress`, `sg-lambda-egress-to-endpoints`).
     - More granular, application-specific security groups are managed by individual service deployments.
 
