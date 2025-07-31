@@ -5,17 +5,17 @@ This Terraform configuration module establishes the foundational networking and 
 By centralizing these common components, we ensure consistency, enforce security best practices, simplify network topology, and optimize costs across our AWS environment.
 
 ## Table of Contents
-1.  [Core VPC Network Configuration](#1-core-vpc-network-configuration)
-2.  [VPC Endpoints (PrivateLink)](#2-vpc-endpoints-privatelink)
-3.  [Main REST API Gateway](#3-main-rest-api-gateway)
-4.  [Reusable IAM Policy Definitions](#4-reusable-iam-policy-definitions)
-5.  [Reusable IAM Role Definitions](#5-reusable-iam-role-definitions)
-6.  [Usage & Integration](#6-usage--integration)
+- [Core VPC Network Configuration](#1-core-vpc-network-configuration)
+- [VPC Endpoints (PrivateLink)](#2-vpc-endpoints-privatelink)
+- [Main REST API Gateway](#3-main-rest-api-gateway)
+- [Reusable IAM Policy Definitions](#4-reusable-iam-policy-definitions)
+- [Reusable IAM Role Definitions](#5-reusable-iam-role-definitions)
+- [Usage & Integration](#6-usage--integration)
 
+---
 
 1. Core VPC Network Configuration
 This section defines the fundamental network infrastructure that all applications will leverage.
----
 
 Resources Managed:
 Virtual Private Cloud (VPC):
