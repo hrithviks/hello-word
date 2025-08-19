@@ -56,3 +56,21 @@ variable "lambda_tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "lambda_create_timeout" {
+  description = "The timeout value for lambda function before it fails during creation"
+  type        = string
+  default     = "2m"
+}
+
+variable "lambda_subnet_ids" {
+  description = "The list of subnets for lambda function"
+  type        = list(string)
+  default     = []
+}
+
+variable "lambda_security_group_ids" {
+  description = "The list of security groups for lambda function"
+  type        = list(string)
+  default     = []
+}
