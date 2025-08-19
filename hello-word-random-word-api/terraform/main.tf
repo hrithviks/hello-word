@@ -22,6 +22,28 @@ provider "aws" {
 # Get account details
 data "aws_caller_identity" "aws_resource_admin" {}
 
+##########################################################
+# Query main configuration and get VPC and IAM resources #
+##########################################################
+
+data "aws_vpc" "main_vpc" {
+  id   = "vpc-02c5c453d0211707d"
+  tags = { Name = "helloword-rootservice-vpc" }
+}
+
+data "aws_subnet" "main_private_subnet" {
+  id     = "subnet-0b455ee91739939b3"
+  vpc_id = data.aws_vpc.main_vpc.id
+}
+
+data "aws_iam_role" "main_lambda_exec_role" {
+  name = "helloword-rootservice-lambda-exec-role"
+}
+
+data "aws_security_group" "main_lambda_sg" {
+  id = "sg-0ad0bf5bb4537a3e7"
+}
+
 # Local variables
 locals {
   resource_name_prefix                     = lower("${var.project_name}-${var.service_name}")
@@ -75,7 +97,7 @@ module "game_words_table_access_policy" {
           module.game_words_table.table_arn,
           "${module.game_words_table.table_arn}/index/*" # For GSIs and LSIs
         ]
-      },
+      }
     ]
   })
 
@@ -170,45 +192,22 @@ module "game_words_api_gateway_cloudwatch_access_policy" {
 /*
 LAMBDA FUNCTION RESOURCES
 
-1. IAM Execution Role for Lambda Service
-2. Dynamo DB Access Policy Attachment for Lambda Exec Role
-3. CloudWatch Access Policy Attachment for Lambda Exec Role
-4. Lambda Function to Generate Random Word
+1. Dynamo DB Access Policy Attachment for Lambda Exec Role
+2. CloudWatch Access Policy Attachment for Lambda Exec Role
+3. Lambda Function to Generate Random Word
+
+NOTE: THe lambda exec role created by the central configuration
 */
-
-# IAM execution role for lambda function
-module "game_words_lambda_exec_role" {
-  source = "../../terraform-modules/iam/roles/"
-
-  # Assign values for module variables from input
-  iam_role_name        = lower("${local.resource_name_prefix}-lambda-exec-role-${var.environment}")
-  iam_role_description = "IAM role for lambda function to access other services"
-
-  # Assume Role Policy for a Lambda Function
-  iam_role_policy_json = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-    }]
-  })
-
-  iam_role_tags = var.project_tags
-}
 
 # Attach the DynamoDB access policy to game word table role
 resource "aws_iam_role_policy_attachment" "game_word_lambda_table_access_attachment" {
-  role       = module.game_words_lambda_exec_role.iam_role_name
+  role       = data.aws_iam_role.main_lambda_exec_role.name
   policy_arn = module.game_words_table_access_policy.iam_policy_arn
 }
 
 # Attach Cloudwatch access policy to execution role for lambda function
 resource "aws_iam_role_policy_attachment" "game_word_lambda_cloudwatch_access_attachment" {
-  role       = module.game_words_lambda_exec_role.iam_role_name
+  role       = data.aws_iam_role.main_lambda_exec_role.name
   policy_arn = module.game_words_lambda_cloudwatch_access_policy.iam_policy_arn
 }
 
@@ -221,13 +220,17 @@ module "game_words_randomize_lambda" {
   lambda_runtime            = "python${var.python_version_num}"
   lambda_memory_size        = var.python_exec_memory_size
   lambda_timeout            = var.python_exec_timeout
-  lambda_iam_role_arn       = module.game_words_lambda_exec_role.iam_role_arn
+  lambda_iam_role_arn       = data.aws_iam_role.main_lambda_exec_role.arn
   lambda_s3_bucket_for_code = var.python_s3_bucket
   lambda_s3_key_for_code    = var.python_s3_key
   lambda_environment_variables = merge(var.python_env_vars, {
     DYNAMODB_TABLE_NAME = module.game_words_table.table_name
   })
   lambda_tags = var.project_tags
+
+  # For VPC Configuration
+  lambda_subnet_ids         = [data.aws_subnet.main_private_subnet.id]
+  lambda_security_group_ids = [data.aws_security_group.main_lambda_sg.id]
 
   depends_on = [
     module.game_words_lambda_cloudwatch_log_group,
