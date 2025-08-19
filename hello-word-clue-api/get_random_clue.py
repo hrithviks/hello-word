@@ -162,7 +162,7 @@ if __name__ == '__main__':
     logger.debug('Testing Lambda Function')
     genai_model = gemini_ai.GenerativeModel('gemini-1.5-flash')
     generation_config = {"temperature": 0.9}
-    prompt = build_gemini_prompt("tripunithura", "town", "easy")
+    prompt = build_gemini_prompt("dubai", "city", "easy")
     response = genai_model.generate_content(prompt, 
                                             safety_settings=build_gemini_safety_setting(),
                                             generation_config=generation_config)
