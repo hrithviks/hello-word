@@ -1,37 +1,38 @@
 /*
-Project.    : Hello Word Game
-Service.    : Central Configuration
+Project     : Hello Word Game
+Service     : Main Configuration
 Description : The terraform configuration for all the centrally managed resources for the project
 */
 
+# Set region
 provider "aws" {
   region = var.aws_region
+}
+
+# Get account details
+data "aws_caller_identity" "aws_resource_admin" {}
+
+locals {
+  name_prefix = lower("${var.project_name}-${var.service_name}")
+  vpc_tags    = merge(var.project_tags, { Section = "VPCSection" })
 }
 
 ##########################################
 # Core VPC configuration for the project #
 ##########################################
 
-locals {
-  name_prefix = lower("${var.project_name}-${var.service_name}")
-  vpc_tags = merge(var.project_tags,
-    {
-      Section = "VPCSection"
-  })
-}
-
 # VPC resource
 resource "aws_vpc" "main_vpc" {
   cidr_block           = var.vpc_cidr
   enable_dns_hostnames = true
   enable_dns_support   = true
-  tags                 = merge(local.vpc_tags, { Name = lower("${local.name_prefix}-VPC") })
+  tags                 = merge(local.vpc_tags, { Name = "${local.name_prefix}-vpc" })
 }
 
 # Internet gateway resource
 resource "aws_internet_gateway" "main_igw" {
   vpc_id = aws_vpc.main_vpc.id
-  tags   = merge(local.vpc_tags, { Name = lower("${local.name_prefix}-InternetGateway") })
+  tags   = merge(local.vpc_tags, { Name = "${local.name_prefix}-internetgateway" })
 }
 
 ###############################
@@ -44,13 +45,13 @@ resource "aws_subnet" "main_public_subnet" {
   cidr_block              = var.vpc_public_subnet_cidr
   availability_zone       = var.vpc_public_subnet_az
   map_public_ip_on_launch = true
-  tags                    = merge(local.vpc_tags, { Name = lower("${local.name_prefix}-PublicSubnet") })
+  tags                    = merge(local.vpc_tags, { Name = "${local.name_prefix}-public-subnet" })
 }
 
 # Public route table resource
 resource "aws_route_table" "main_public_rt" {
   vpc_id = aws_vpc.main_vpc.id
-  tags   = merge(local.vpc_tags, { Name = lower("${local.name_prefix}-PublicRouteTable") })
+  tags   = merge(local.vpc_tags, { Name = "${local.name_prefix}-public-route-table" })
 }
 
 # Public route to internet gateway
@@ -75,13 +76,13 @@ resource "aws_subnet" "main_private_subnet" {
   vpc_id            = aws_vpc.main_vpc.id
   cidr_block        = var.vpc_private_subnet_cidr
   availability_zone = var.vpc_private_subnet_az
-  tags              = merge(local.vpc_tags, { Name = lower("${local.name_prefix}-PrivateSubnet") })
+  tags              = merge(local.vpc_tags, { Name = "${local.name_prefix}-private-subnet" })
 }
 
 # Private route table resource
 resource "aws_route_table" "main_private_rt" {
   vpc_id = aws_vpc.main_vpc.id
-  tags   = merge(local.vpc_tags, { Name = lower("${local.name_prefix}-PrivateRouteTable") })
+  tags   = merge(local.vpc_tags, { Name = "${local.name_prefix}-private-route-table" })
 }
 
 # Associate private subnets with the private route table
@@ -109,14 +110,14 @@ resource "aws_vpc_endpoint" "main_dynamodb_endpoint" {
 # Security Groups in VPC #
 ##########################
 
-# Security group for lambda functions
+# Security group for private lambda functions
 resource "aws_security_group" "main_lambda_sg" {
-  name        = lower("${local.name_prefix}-LambdaSecurityGroup")
-  description = "Security group for lambda functions"
+  name        = "${local.name_prefix}-lambda-security-group"
+  description = "Security group for private lambda functions"
   vpc_id      = aws_vpc.main_vpc.id
 }
 
-# Security group for outbound access to DynamoDB via Gateway Endpoint
+# Security group rule for outbound connections from private lambda functions to dynamodb
 resource "aws_security_group_rule" "main_lambda_sg_egress" {
   type              = "egress"
   from_port         = 443
@@ -125,6 +126,30 @@ resource "aws_security_group_rule" "main_lambda_sg_egress" {
   security_group_id = aws_security_group.main_lambda_sg.id
   prefix_list_ids   = [aws_vpc_endpoint.main_dynamodb_endpoint.prefix_list_id]
   description       = "Allow outbound access to DynamoDB via Gateway Endpoint"
+}
+
+#########################
+# Cloudwatch Log Groups #
+#########################
+
+module "main_api_gateway_cloudwatch_log_group" {
+  source = "../terraform-modules/cloudwatch/"
+
+  cloudwatch_log_group_name    = "${local.name_prefix}/api-gateway-logs"
+  cloudwatch_retention_in_days = var.cloudwatch_retention_period
+  cloudwatch_tags              = var.project_tags
+}
+
+########################
+# API Gateway Resource #
+########################
+
+module "main_rest_api" {
+  source                           = "../terraform-modules/api-gateway/rest_api/"
+  api_gateway_name                 = "hello-word-api-gateway"
+  api_gateway_description          = "Main API gateway resource for the backend services"
+  api_gateway_rest_endpoint_config = "REGIONAL"
+  api_gateway_rest_api_body        = jsonencode(local.hello_word_openapi_specification_map)
 }
 
 ################
@@ -147,6 +172,8 @@ locals {
         Resource = "*"
         Effect   = "Allow"
       },
+
+      # Enforces policy only in the current VPC
       {
         Effect   = "Allow",
         Action   = "ec2:AttachNetworkInterface",
@@ -161,27 +188,37 @@ locals {
   })
 }
 
-# JSON definition for lambda execution role
+# JSON definition for CloudWatch Log Group Access
 locals {
-  lambda_role_json = jsonencode({
-    Version = "2012-10-17"
+  cloudwatch_log_group_access_json = jsonencode({
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow"
-        Principal = {
-          Service = "lambda.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-    }]
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogStream"
+        ],
+        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.aws_resource_admin.account_id}:*"
+      },
+      {
+        Effect = "Allow",
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ],
+        Resource = "${module.main_api_gateway_cloudwatch_log_group.log_group_arn}:*"
+      }
+    ]
   })
 }
 
-# Generate IAM policy for lambda function to manage VPC resources
+# IAM policy for lambda function to manage VPC resources
 module "main_lambda_vpc_access_policy" {
   source = "../terraform-modules/iam/policies/"
 
   # Assign values for module variables from input
-  iam_policy_name        = lower("${local.name_prefix}-Lambda-VPC-Access-Policy")
+  iam_policy_name        = "${local.name_prefix}-lambda-vpc-access-policy"
   iam_policy_description = "IAM policy for Lambda to manage VPC resources"
   iam_policy_json        = local.lambda_vpc_access_policy_json
   iam_policy_tags        = merge(var.project_tags, { Name = "LambdaVPCAccessPolicy" })
@@ -192,53 +229,100 @@ module "main_lambda_exec_role" {
   source = "../terraform-modules/iam/roles/"
 
   # Assign values for module variables from input
-  iam_role_name        = lower("${local.name_prefix}-Lambda-Exec-Role")
+  iam_role_name        = "${local.name_prefix}-lambda-exec-role"
   iam_role_description = "IAM role for lambda function to access other services"
   iam_role_policy_json = local.lambda_role_json
   iam_role_tags        = merge(var.project_tags, { Name = "LambdaExecRole" })
 }
 
 # Attach the policy to the execution role
-resource "aws_iam_role_policy_attachment" "main_lambda_table_access_attachment" {
+resource "aws_iam_role_policy_attachment" "main_lambda_vpc_access_attachment" {
   role       = module.main_lambda_exec_role.iam_role_name
   policy_arn = module.main_lambda_vpc_access_policy.iam_policy_arn
 }
 
+# IAM policy for API Gateway
+module "main_api_gateway_cloudwatch_policy" {
+  source = "../terraform-modules/iam/policies/"
+
+  # Assign values for module variables from input
+  iam_policy_name        = "${local.name_prefix}-apigateway-cloudwatch-access-policy"
+  iam_policy_description = "IAM policy for API gateway to access cloudwatch logs"
+  iam_policy_json        = local.cloudwatch_log_group_access_json
+  iam_policy_tags        = merge(var.project_tags, { Name = "APIGatewayCloudWatchAccessPolicy" })
+}
+
+# IAM execution role for API Gateway
+module "main_api_gateway_cloudwatch_role" {
+  source = "../terraform-modules/iam/roles/"
+
+  # Assign values for module variables from input
+  iam_role_name        = "${local.name_prefix}-apigateway-cloudwatch-role"
+  iam_role_description = "IAM role for API gateway to access cloudwatch logs"
+  iam_role_policy_json = local.api_gateway_role_json
+  iam_role_tags        = merge(var.project_tags, { Name = "APIGatewayCloudWatchRole" })
+}
+
+# Attach the policy for cloudwatch to the execution role
+resource "aws_iam_role_policy_attachment" "main_api_gateway_cloudwatch_policy_attachment" {
+  role       = module.main_api_gateway_cloudwatch_role.iam_role_name
+  policy_arn = module.main_api_gateway_cloudwatch_policy.iam_policy_arn
+}
 
 ###################################
 # S3 Buckets for various services #
 ###################################
 
-# S3 bucket for clue-api service - for backend and lambda code
+locals {
+  s3_buckets = [
+    "random-word-api",
+    "clue-api"
+  ]
+}
 
-# S3 bucket for random-word-api service backend - for backend and lambda code
+# Create S3 buckets for both API services
+resource "aws_s3_bucket" "service_buckets" {
 
-# S3 bucket for static website for the front end system
+  for_each = toset(local.s3_buckets)
+  bucket   = "${each.value}-bucket"
+  tags     = merge(var.project_tags, { Name = "RandomWordAPIBucket" })
+}
 
-# S3 Gateway End Point
-/*
- - Used by private lambda functions to deploy the code
- - Common end point for all the lambda functions
-*/
+# Block public access to the buckets
+resource "aws_s3_bucket_public_access_block" "block" {
 
-# DynamoDB Gateway End Point
-/*
- - Used by lambda function to get data
- - Common end point for all the lambda functions
-*/
+  for_each                = aws_s3_bucket.service_buckets
+  bucket                  = each.value.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
 
-# API Gateway Interface End Point
-/*
-- Used by ECS/EKS to query invoke the lambda functions
-*/
+# Set bucket policy to control access to the buckets
+resource "aws_s3_bucket_policy" "service_bucket_policy" {
 
-# KMS Interface End Point
+  for_each = aws_s3_bucket.service_buckets
+  bucket   = each.value.id
 
-# Secrets Manager Interface End Point
-
-# Lambda Interface End Point
-/*
- - Used by API Gateway to invoke the functions
-*/
-
-# SQS Interface End Point
+  policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Effect = "Allow",
+        Principal = {
+          AWS = data.aws_caller_identity.aws_resource_admin.arn
+        },
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:ListBucket",
+        ],
+        Resource = [
+          "${each.value.arn}",
+          "${each.value.arn}/*"
+        ]
+      }
+    ]
+  })
+}

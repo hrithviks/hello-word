@@ -1,6 +1,6 @@
-/*
-Backend and provider setup for central configuration.
-*/
+################################################
+# Backend and providers for main configuration #
+################################################
 
 terraform {
 

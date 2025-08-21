@@ -40,7 +40,7 @@ output "main_lambda_sg_id" {
 
 output "main_lambda_sg_name" {
   description = "The name of the main lambda security group"
-  value       = aws_security_group.main_lambda_sg.name
+  value       = aws_security_group.main_lambda_sg.id
 }
 
 output "main_lambda_vpc_access_policy_arn" {
@@ -48,7 +48,12 @@ output "main_lambda_vpc_access_policy_arn" {
   value       = module.main_lambda_vpc_access_policy.iam_policy_arn
 }
 
-output "main_lambda_exec_role_arn" {
-  description = "The ARN of the main lambda execution role"
-  value       = module.main_lambda_exec_role.iam_role_arn
+output "main_lambda_exec_role_name" {
+  description = "The name of the main lambda execution role"
+  value       = module.main_lambda_exec_role.iam_role_name
+}
+
+output "main_api_gateway_name" {
+  description = "The name of the API gateway resource"
+  value       = module.main_rest_api.rest_api_name
 }

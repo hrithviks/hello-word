@@ -22,7 +22,7 @@ variable "project_name" {
 variable "service_name" {
   type        = string
   description = "The name of the main service"
-  default     = "RootService"
+  default     = "Main"
 }
 
 variable "project_tags" {
@@ -66,4 +66,14 @@ variable "vpc_private_subnet_az" {
   type        = string
   description = "The availability zone for the public subnet."
   default     = "ap-southeast-1b"
+}
+
+/*
+For CloudWatch
+*/
+
+variable "cloudwatch_retention_period" {
+  type        = number
+  description = "Retention period value for log group files in days"
+  default     = 30
 }
