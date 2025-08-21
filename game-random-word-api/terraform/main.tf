@@ -1,18 +1,8 @@
 /*
-Author      : Hrithvik Saseendran
-Description : Main Configuration for Random Word API
+Project     : Hello Word Game
+Service     : Random Word API Service
+Description : The terraform configuration for AWS resources for the Random Word API Service
 */
-
-# Setup Provider
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = ">=6.0.0"
-    }
-  }
-  required_version = ">=1.12.0"
-}
 
 # Setup Region
 provider "aws" {
@@ -22,48 +12,48 @@ provider "aws" {
 # Get account details
 data "aws_caller_identity" "aws_resource_admin" {}
 
-##########################################################
-# Query main configuration and get VPC and IAM resources #
-##########################################################
+#######################################################
+# Query main configuration and get required resources #
+#######################################################
 
 data "aws_vpc" "main_vpc" {
-  id   = "vpc-02c5c453d0211707d"
-  tags = { Name = "helloword-rootservice-vpc" }
+  id   = var.vpc_id
+  tags = { Name = "helloword-main-vpc" }
 }
 
 data "aws_subnet" "main_private_subnet" {
-  id     = "subnet-0b455ee91739939b3"
+  id     = var.private_subnet_id
   vpc_id = data.aws_vpc.main_vpc.id
 }
 
 data "aws_iam_role" "main_lambda_exec_role" {
-  name = "helloword-rootservice-lambda-exec-role"
+  name = var.lambda_exec_role_name
 }
 
 data "aws_security_group" "main_lambda_sg" {
-  id = "sg-0ad0bf5bb4537a3e7"
+  id = var.lambda_security_group_id
+}
+
+data "aws_api_gateway_rest_api" "main_rest_api" {
+  name = var.api_gateway_name
 }
 
 # Local variables
 locals {
-  resource_name_prefix                     = lower("${var.project_name}-${var.service_name}")
-  aws_account_id                           = data.aws_caller_identity.aws_resource_admin.account_id
-  api_gateway_lambda_permission_source_arn = "arn:aws:execute-api:${var.aws_region}:${local.aws_account_id}:${module.game_words_rest_api.rest_api_id}/*/*"
+  resource_name_prefix = lower("${var.project_name}-${var.service_name}")
+  aws_account_id       = data.aws_caller_identity.aws_resource_admin.account_id
 }
 
-/*
-DYNAMODB RESOURCES
-
-1. DynamoDB Table For Storing Game Data
-2. IAM Policy For Table Access
-*/
+######################
+# DynamoDB Resources #
+######################
 
 # Invoke DynamoDB Table Module to create a new table
 module "game_words_table" {
   source = "../../terraform-modules/dynamo-db"
 
   # Assign values for module variables from input
-  table_name     = lower("${local.resource_name_prefix}-db-${var.environment}")
+  table_name     = "${local.resource_name_prefix}-db"
   hash_key       = var.dynamodb_table_hash_key
   range_key      = var.dynamodb_table_range_key
   attributes     = var.dynamodb_table_attributes
@@ -78,7 +68,7 @@ module "game_words_table_access_policy" {
   source = "../../terraform-modules/iam/policies/"
 
   # Assign values for module variables from input
-  iam_policy_name        = lower("${local.resource_name_prefix}-DynamoDB-ReadAccess-Policy-${var.environment}")
+  iam_policy_name        = "${local.resource_name_prefix}-dynamodb-readaccess-policy"
   iam_policy_description = "IAM policy for granting access to DynamoDB table"
 
   iam_policy_json = jsonencode({
@@ -104,18 +94,15 @@ module "game_words_table_access_policy" {
   iam_policy_tags = var.project_tags
 }
 
-/*
-CLOUDWATCH RESOURCES
-
-1. Cloudwatch Log Group for Lambda Function
-2. Cloudwatch Log Group for API Gateway
-*/
+###################################
+# CloudWatch Log Group for Lambda #
+###################################
 
 # Create Cloudwatch log group for Lambda function
 module "game_words_lambda_cloudwatch_log_group" {
   source = "../../terraform-modules/cloudwatch/"
 
-  cloudwatch_log_group_name    = lower("/aws/lambda/${local.resource_name_prefix}-func-${var.environment}")
+  cloudwatch_log_group_name    = "/aws/lambda/${local.resource_name_prefix}-func"
   cloudwatch_retention_in_days = var.cloudwatch_retention_period
   cloudwatch_tags              = var.project_tags
 }
@@ -124,7 +111,7 @@ module "game_words_lambda_cloudwatch_log_group" {
 module "game_words_lambda_cloudwatch_access_policy" {
   source = "../../terraform-modules/iam/policies/"
 
-  iam_policy_name        = lower("${local.resource_name_prefix}-Lambda-CloudWatch-Access-Policy-${var.environment}")
+  iam_policy_name        = "${local.resource_name_prefix}-lambda-cloudwatch-access-policy"
   iam_policy_description = "IAM policy for granting access to CloudWatch log group for the Lambda function"
   iam_policy_json = jsonencode({
     Version = "2012-10-17",
@@ -150,62 +137,17 @@ module "game_words_lambda_cloudwatch_access_policy" {
   iam_policy_tags = var.project_tags
 }
 
-# Create Cloudwatch log group for API gateway 
-module "game_words_api_gateway_cloudwatch_log_group" {
-  source = "../../terraform-modules/cloudwatch/"
+#############################
+# Lambda Function Resources #
+#############################
 
-  cloudwatch_log_group_name    = lower("${local.resource_name_prefix}/${var.environment}/api-gateway-logs")
-  cloudwatch_retention_in_days = var.cloudwatch_retention_period
-  cloudwatch_tags              = var.project_tags
-}
-
-# Create policy for read-write access to Cloudwatch log group for API Gateway
-module "game_words_api_gateway_cloudwatch_access_policy" {
-  source = "../../terraform-modules/iam/policies/"
-
-  iam_policy_name        = lower("${local.resource_name_prefix}-API-Gateway-CloudWatch-Access-Policy-${var.environment}")
-  iam_policy_description = "IAM policy for granting access to CloudWatch log group for the API Gateway"
-  iam_policy_json = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Effect = "Allow",
-        Action = [
-          "logs:CreateLogStream"
-        ],
-        Resource = "arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.aws_resource_admin.account_id}:*"
-      },
-      {
-        Effect = "Allow",
-        Action = [
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:DescribeLogStreams"
-        ],
-        Resource = "${module.game_words_api_gateway_cloudwatch_log_group.log_group_arn}:*"
-      }
-    ]
-  })
-  iam_policy_tags = var.project_tags
-}
-
-/*
-LAMBDA FUNCTION RESOURCES
-
-1. Dynamo DB Access Policy Attachment for Lambda Exec Role
-2. CloudWatch Access Policy Attachment for Lambda Exec Role
-3. Lambda Function to Generate Random Word
-
-NOTE: THe lambda exec role created by the central configuration
-*/
-
-# Attach the DynamoDB access policy to game word table role
+# Attach the DynamoDB access policy to lambda execution role
 resource "aws_iam_role_policy_attachment" "game_word_lambda_table_access_attachment" {
   role       = data.aws_iam_role.main_lambda_exec_role.name
   policy_arn = module.game_words_table_access_policy.iam_policy_arn
 }
 
-# Attach Cloudwatch access policy to execution role for lambda function
+# Attach Cloudwatch access policy to lambda execution role
 resource "aws_iam_role_policy_attachment" "game_word_lambda_cloudwatch_access_attachment" {
   role       = data.aws_iam_role.main_lambda_exec_role.name
   policy_arn = module.game_words_lambda_cloudwatch_access_policy.iam_policy_arn
@@ -215,18 +157,16 @@ resource "aws_iam_role_policy_attachment" "game_word_lambda_cloudwatch_access_at
 module "game_words_randomize_lambda" {
   source = "../../terraform-modules/lambda"
 
-  lambda_function_name      = lower("${local.resource_name_prefix}-func-${var.environment}")
-  lambda_handler            = "${var.python_source_code_file_name}.${var.python_function_name}"
-  lambda_runtime            = "python${var.python_version_num}"
-  lambda_memory_size        = var.python_exec_memory_size
-  lambda_timeout            = var.python_exec_timeout
-  lambda_iam_role_arn       = data.aws_iam_role.main_lambda_exec_role.arn
-  lambda_s3_bucket_for_code = var.python_s3_bucket
-  lambda_s3_key_for_code    = var.python_s3_key
-  lambda_environment_variables = merge(var.python_env_vars, {
-    DYNAMODB_TABLE_NAME = module.game_words_table.table_name
-  })
-  lambda_tags = var.project_tags
+  lambda_function_name         = "${local.resource_name_prefix}-func"
+  lambda_handler               = "${var.python_source_code_file_name}.${var.python_function_name}"
+  lambda_runtime               = "python${var.python_version_num}"
+  lambda_memory_size           = var.python_exec_memory_size
+  lambda_timeout               = var.python_exec_timeout
+  lambda_iam_role_arn          = data.aws_iam_role.main_lambda_exec_role.arn
+  lambda_s3_bucket_for_code    = var.python_s3_bucket
+  lambda_s3_key_for_code       = var.python_s3_key
+  lambda_environment_variables = merge(var.python_env_vars, { DYNAMODB_TABLE_NAME = module.game_words_table.table_name })
+  lambda_tags                  = var.project_tags
 
   # For VPC Configuration
   lambda_subnet_ids         = [data.aws_subnet.main_private_subnet.id]
@@ -238,52 +178,45 @@ module "game_words_randomize_lambda" {
   ]
 }
 
-/*
-API GATEWAY RESOURCES
+##################################
+# REST method for RandomWord API #
+##################################
 
-1. IAM Execution Role for API Gateway Service
-2. CloudWatch Access Policy Attachment for API Gateway Exec Role
-3. API Gateway Resource
-4. Lambda Permission for API Gateway Invocation
-*/
-
-# IAM execution role for API Gateway
-module "game_words_api_gateway_exec_role" {
-  source = "../../terraform-modules/iam/roles/"
-
-  # Assign values for module variables from input
-  iam_role_name        = lower("${local.resource_name_prefix}-api-gateway-exec-role-${var.environment}")
-  iam_role_description = "IAM role for API Gateway to access other services"
-
-  # Assume Role Policy for a Lambda Function
-  iam_role_policy_json = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Principal = {
-          Service = "apigateway.amazonaws.com"
-        }
-        Action = "sts:AssumeRole"
-    }]
-  })
-
-  iam_role_tags = var.project_tags
+# Get the "helloword" parent resource from the REST API
+data "aws_api_gateway_resource" "main_resource" {
+  rest_api_id = data.aws_api_gateway_rest_api.main_rest_api.id
+  path        = "/helloword"
 }
 
-# Attach the CloudWatch Access Policy to IAM Role for API Gateway
-resource "aws_iam_role_policy_attachment" "game_word_api_gateway_cloudwatch_access_attachment" {
-  role       = module.game_words_api_gateway_exec_role.iam_role_name
-  policy_arn = module.game_words_api_gateway_cloudwatch_access_policy.iam_policy_arn
+# Create the resource for the "getRandomWord" method
+resource "aws_api_gateway_resource" "game_word_resource" {
+  rest_api_id = data.aws_api_gateway_rest_api.main_rest_api.id
+  parent_id   = data.aws_api_gateway_resource.main_resource.id
+  path_part   = "getRandomWord"
 }
 
-# Create the API Gateway Resource
-module "game_words_rest_api" {
-  source                           = "../../terraform-modules/api-gateway/rest_api/"
-  api_gateway_name                 = "random-word-api-dev"
-  api_gateway_description          = "API to retrieve random word via lambda function"
-  api_gateway_rest_endpoint_config = "REGIONAL"
-  api_gateway_rest_api_body        = jsonencode(local.random_word_openapi_specification_map)
+# Create the "GET" method
+resource "aws_api_gateway_method" "game_word_method" {
+  rest_api_id   = data.aws_api_gateway_rest_api.main_rest_api.id
+  resource_id   = aws_api_gateway_resource.game_word_resource.id
+  http_method   = "GET"
+  authorization = "AWS_IAM"
+}
+
+# Create the integration for the "GET" method
+resource "aws_api_gateway_integration" "game_word_lambda_integration" {
+  rest_api_id             = data.aws_api_gateway_rest_api.main_rest_api.id
+  resource_id             = aws_api_gateway_resource.game_word_resource.id
+  http_method             = aws_api_gateway_method.game_word_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+
+  uri = "arn:aws:apigateway:${var.aws_region}:lambda:path/2015-03-31/functions/${module.game_words_randomize_lambda.lambda_arn}/invocations"
+}
+
+locals {
+  current_account_info = "${var.aws_region}:${local.aws_account_id}"
+  lambda_source_arn    = "arn:aws:execute-api:${local.current_account_info}:${data.aws_api_gateway_rest_api.main_rest_api.id}/*"
 }
 
 # Add lambda permission for the API Gateway
@@ -292,18 +225,18 @@ resource "aws_lambda_permission" "api_gateway_permission" {
   action        = "lambda:InvokeFunction"
   function_name = module.game_words_randomize_lambda.lambda_arn
   principal     = "apigateway.amazonaws.com"
-  source_arn    = local.api_gateway_lambda_permission_source_arn
+  source_arn    = local.lambda_source_arn
 
   # Add explicit dependency on API Gateway and Lambda resource
   depends_on = [
-    module.game_words_rest_api,
+    aws_api_gateway_integration.game_word_lambda_integration,
     module.game_words_randomize_lambda
   ]
 }
 
-/*
-OUTPUTS SECTION
-*/
+###########
+# Outputs #
+###########
 
 # Output the DynamoDB table name and ARN
 output "game_words_table_name" {

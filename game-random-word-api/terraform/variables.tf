@@ -10,6 +10,7 @@ VARIABLES FOR MAIN CONFIGURATION
 variable "environment" {
   description = "The deployment environment (e.g., dev, prod, staging)."
   type        = string
+  default     = "dev"
 }
 
 variable "project_name" {
@@ -39,6 +40,35 @@ variable "project_tags" {
     Service     = "Random-Word-API"
     Terraform   = true
   }
+}
+
+/*
+VARIABLE FROM MAIN CONFIGURATION
+*/
+
+variable "vpc_id" {
+  description = "The ID of main VPC managed by the central configuration"
+  type        = string
+}
+
+variable "private_subnet_id" {
+  description = "The ID of main private subnet managed by the central configuration"
+  type        = string
+}
+
+variable "lambda_exec_role_name" {
+  description = "The name of lambda execution role managed by the central configuration"
+  type        = string
+}
+
+variable "lambda_security_group_id" {
+  description = "The ID of main lambda security group managed by the central configuration"
+  type        = string
+}
+
+variable "api_gateway_name" {
+  description = "The name of the API Gateway managed by the central configuration"
+  type        = string
 }
 
 /*
@@ -104,7 +134,7 @@ variable "python_version_num" {
 variable "python_source_code_file_name" {
   description = "Python source file (zipped) name used to configure the lambda function"
   type        = string
-  default     = "main"
+  default     = "get_random_word"
 }
 
 variable "python_function_name" {
@@ -116,7 +146,6 @@ variable "python_function_name" {
 variable "python_s3_bucket" {
   description = "S3 bucket name for hosting python code"
   type        = string
-  default     = "hello-word-random-api"
 }
 
 variable "python_s3_key" {

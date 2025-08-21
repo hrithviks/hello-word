@@ -12,7 +12,7 @@ import boto3
 
 # AWS Configuration
 AWS_REGION = "ap-southeast-1"
-AWS_API_GATEWAY_ENDPOINT = "https://1xsup1oijk.execute-api.ap-southeast-1.amazonaws.com/dev/helloword/"
+AWS_API_GATEWAY_ENDPOINT = "https://026s54zor2.execute-api.ap-southeast-1.amazonaws.com/demo/helloword/"
 AWS_RANDOM_WORD_API = "getRandomWord"
 TEST_PARAMS_MEDIUM = {'category': 'animals', 'difficulty': 'medium'}
 TEST_PARAMS_HARD = {'category': 'birds', 'difficulty': 'hard'}

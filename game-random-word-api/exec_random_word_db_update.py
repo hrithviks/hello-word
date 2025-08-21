@@ -30,9 +30,9 @@ def delta_table_load():
     pass
 
 REGION_NAME = 'ap-southeast-1'
-BUCKET_NAME = 'hello-word-random-api'
+BUCKET_NAME = 'random-word-api-bucket'
 OBJECT_KEY = 'random_words_api_data.csv'
-TABLE_NAME = 'helloword-random-word-api-db-dev'
+TABLE_NAME = 'helloword-random-word-api-db'
 
 # S3 initialisation
 s3_resource = boto3.resource('s3', region_name=REGION_NAME)
