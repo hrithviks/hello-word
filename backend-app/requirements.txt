@@ -1,0 +1,2 @@
+# Front end components
+Flask == 3.1.1
