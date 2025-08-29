@@ -1,0 +1,59 @@
+output "main_vpc_arn" {
+  description = "The ARN of the main VPC"
+  value       = aws_vpc.main_vpc.arn
+}
+
+output "main_vpc_id" {
+  description = "The ID of the main VPC"
+  value       = aws_vpc.main_vpc.id
+}
+
+output "main_igw_id" {
+  description = "The ID of the main internet gateway"
+  value       = aws_internet_gateway.main_igw.id
+}
+
+output "main_public_subnet_id" {
+  description = "The ID of the main public subnet"
+  value       = aws_subnet.main_public_subnet.id
+}
+
+output "main_private_subnet_id" {
+  description = "The ID of the main private subnet"
+  value       = aws_subnet.main_private_subnet.id
+}
+
+output "main_public_rt_id" {
+  description = "The ID of the main public route table"
+  value       = aws_route_table.main_public_rt.id
+}
+
+output "main_private_rt_id" {
+  description = "The ID of the main private route table"
+  value       = aws_route_table.main_private_rt.id
+}
+
+output "main_lambda_vpc_access_policy_arn" {
+  description = "The ARN of the main lambda VPC access policy"
+  value       = module.main_lambda_vpc_access_policy.iam_policy_arn
+}
+
+output "main_lambda_exec_role_name" {
+  description = "The name of the main lambda execution role"
+  value       = module.main_lambda_exec_role.iam_role_name
+}
+
+output "main_lambda_exec_role_arn" {
+  description = "The name of the main lambda execution role"
+  value       = module.main_lambda_exec_role.iam_role_arn
+}
+
+output "main_api_gateway_name" {
+  description = "The name of the API gateway resource"
+  value       = module.main_rest_api.rest_api_name
+}
+
+output "main_api_gateway_id" {
+  description = "The name of the API gateway resource"
+  value       = module.main_rest_api.rest_api_id
+}
